@@ -1,0 +1,19 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+// Access the Supabase client anywhere via this provider
+final supabaseClientProvider = Provider<SupabaseClient>((ref) {
+  return Supabase.instance.client;
+});
+
+// Auth state stream provider
+final authStateProvider = StreamProvider<AuthState>((ref) {
+  final client = ref.watch(supabaseClientProvider);
+  return client.auth.onAuthStateChange;
+});
+
+// Current user provider
+final currentUserProvider = Provider<User?>((ref) {
+  final client = ref.watch(supabaseClientProvider);
+  return client.auth.currentUser;
+});
