@@ -1,16 +1,18 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PROFILE SCREEN
 // ─────────────────────────────────────────────────────────────────────────────
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: AppColors.backgroundLight,
       body: Stack(
@@ -55,6 +57,14 @@ class ProfileScreen extends StatelessWidget {
                       const _SettingsLink(
                         icon: Icons.settings_outlined,
                         label: 'SETTINGS',
+                      ),
+                      const SizedBox(height: 8),
+                      _SignOutButton(
+                        onTap: () async {
+                          await ref
+                              .read(authNotifierProvider.notifier)
+                              .signOut();
+                        },
                       ),
                     ]),
                   ),
@@ -409,6 +419,44 @@ class _SettingsLink extends StatelessWidget {
           const Icon(Icons.chevron_right_rounded,
               size: 20, color: Color(0xFFC6C6C6)),
         ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SIGN OUT BUTTON
+// ─────────────────────────────────────────────────────────────────────────────
+class _SignOutButton extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _SignOutButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        decoration: BoxDecoration(
+          color: const Color(0x80F3F3F4),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.logout_rounded, size: 18, color: Color(0xFFE53935)),
+            const SizedBox(width: 16),
+            Text(
+              'SIGN OUT',
+              style: GoogleFonts.lexend(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.7,
+                color: const Color(0xFFE53935),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
