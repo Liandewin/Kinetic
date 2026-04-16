@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../features/auth/presentation/screens/check_email_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/signup_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
@@ -16,6 +17,7 @@ import '../../core/supabase/supabase_client.dart';
 class AppRoutes {
   static const String login = '/login';
   static const String signup = '/sign-up';
+  static const String checkEmail = '/check-email';
   static const String home = '/';
   static const String workout = '/workout';
   static const String achievements = '/achievements';
@@ -46,7 +48,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       final session = Supabase.instance.client.auth.currentSession;
       final isLoggedIn = session != null;
       final isAuthRoute = state.matchedLocation == AppRoutes.login ||
-          state.matchedLocation == AppRoutes.signup;
+          state.matchedLocation == AppRoutes.signup ||
+          state.matchedLocation == AppRoutes.checkEmail;
 
       if (!isLoggedIn && !isAuthRoute) return AppRoutes.login;
       if (isLoggedIn && isAuthRoute) return AppRoutes.home;
@@ -62,6 +65,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.signup,
         builder: (context, state) => const SignupScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.checkEmail,
+        builder: (context, state) {
+          final email = state.uri.queryParameters['email'] ?? '';
+          return CheckEmailScreen(email: email);
+        },
       ),
 
       // ── App routes (with bottom nav shell) ─────────────
