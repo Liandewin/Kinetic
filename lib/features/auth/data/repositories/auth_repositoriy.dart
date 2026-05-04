@@ -3,6 +3,13 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthRepository {
+  /// Deep link target for email confirmation + password reset flows.
+  /// Must match the custom URL scheme registered in
+  /// `android/app/src/main/AndroidManifest.xml` and `ios/Runner/Info.plist`,
+  /// AND be listed in Supabase Dashboard → Authentication → URL Configuration
+  /// → Redirect URLs.
+  static const String emailRedirectUrl = 'io.kinetic.app://login-callback/';
+
   final SupabaseClient _supabase;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
 
@@ -21,6 +28,7 @@ class AuthRepository {
       email: email,
       password: password,
       data: {'full_name': fullName},
+      emailRedirectTo: emailRedirectUrl,
     );
   }
 
@@ -65,6 +73,14 @@ class AuthRepository {
     await _supabase.auth.signInWithIdToken(
       provider: OAuthProvider.apple,
       idToken: idToken,
+    );
+  }
+
+  Future<void> resendVerificationEmail(String email) async {
+    await _supabase.auth.resend(
+      type: OtpType.signup,
+      email: email,
+      emailRedirectTo: emailRedirectUrl,
     );
   }
 

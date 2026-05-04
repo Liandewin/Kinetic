@@ -33,6 +33,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     await ref
         .read(authNotifierProvider.notifier)
         .signInWithEmail(email, password);
+
+    if (!mounted) return;
+    final state = ref.read(authNotifierProvider);
+    state.whenOrNull(
+      error: (e, _) {
+        // If the account exists but hasn't been email-verified, route them
+        // to the "check your email" screen instead of showing an error
+        // snackbar — so they have a clear path forward (including resend).
+        if (_isEmailNotConfirmed(e)) {
+          final encoded = Uri.encodeQueryComponent(email);
+          context.go('${AppRoutes.checkEmail}?email=$encoded');
+        }
+        ref.read(authNotifierProvider.notifier).clearError();
+      },
+    );
   }
 
   Future<void> _signInWithGoogle() async {
@@ -43,6 +58,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     await ref.read(authNotifierProvider.notifier).signInWithApple();
   }
 
+  /// Detect Supabase's "email not confirmed" response. Supabase returns error
+  /// code `email_not_confirmed` with message "Email not confirmed" — match
+  /// both to survive small wording changes across SDK versions.
+  bool _isEmailNotConfirmed(Object error) {
+    final s = error.toString().toLowerCase();
+    return s.contains('email not confirmed') ||
+        s.contains('email_not_confirmed');
+  }
+
+  /// Detect Supabase's invalid-credentials response so we can surface a
+  /// friendly message instead of the raw SDK string. Matches both the
+  /// human-readable "Invalid login credentials" and the error code variants.
+  bool _isInvalidCredentials(Object error) {
+    final s = error.toString().toLowerCase();
+    return s.contains('invalid login credentials') ||
+        s.contains('invalid_credentials') ||
+        s.contains('invalid_grant');
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authNotifierProvider);
@@ -50,13 +84,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     ref.listen(authNotifierProvider, (_, next) {
       next.whenOrNull(
         error: (e, _) {
+          // Email-not-confirmed is handled inline in _signInWithEmail (it
+          // triggers a navigation rather than a snackbar). Skip it here so
+          // the user doesn't see both.
+          if (_isEmailNotConfirmed(e)) return;
+          final message = _isInvalidCredentials(e)
+              ? 'Invalid email or password'
+              : e.toString().replaceAll('Exception: ', '');
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(e.toString().replaceAll('Exception: ', '')),
+              content: Text(message),
               backgroundColor: AppColors.error,
             ),
           );
-          ref.read(authNotifierProvider.notifier).clearError();
+          // Don't clearError here — the state setter for the next auth
+          // attempt will transition through `loading` anyway, and clearing
+          // synchronously in the listener hides errors from awaiting callers.
         },
       );
     });

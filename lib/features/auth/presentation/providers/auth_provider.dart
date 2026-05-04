@@ -37,6 +37,13 @@ class AuthNotifier extends StateNotifier<AsyncValue<void>> {
     state = await AsyncValue.guard(() => _repo.signInWithApple());
   }
 
+  Future<void> resendVerificationEmail(String email) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(
+      () => _repo.resendVerificationEmail(email),
+    );
+  }
+
   Future<void> signOut() async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() => _repo.signOut());

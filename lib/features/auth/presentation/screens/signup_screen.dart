@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/router/app_router.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/auth_widgets.dart';
 
@@ -35,6 +36,20 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
     await ref
         .read(authNotifierProvider.notifier)
         .signUpWithEmail(email, password, name);
+
+    if (!mounted) return;
+    // If sign-up failed, the listener already showed a snackbar. Clear the
+    // error state and bail — don't navigate to check-email on failure.
+    // On success (and when email confirmations are required on the Supabase
+    // project), there's no session yet — send the user to the "check your
+    // email" screen so they know what to do next.
+    final state = ref.read(authNotifierProvider);
+    if (state.hasError) {
+      ref.read(authNotifierProvider.notifier).clearError();
+      return;
+    }
+    final encoded = Uri.encodeQueryComponent(email);
+    context.go('${AppRoutes.checkEmail}?email=$encoded');
   }
 
   Future<void> _signInWithGoogle() async {
@@ -58,7 +73,9 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
               backgroundColor: AppColors.error,
             ),
           );
-          ref.read(authNotifierProvider.notifier).clearError();
+          // Don't clearError here — _signUp inspects state post-await to
+          // decide whether to navigate to /check-email, and clearing
+          // synchronously in the listener would hide the error from it.
         },
       );
     });
