@@ -67,6 +67,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         s.contains('email_not_confirmed');
   }
 
+  /// Detect Supabase's invalid-credentials response so we can surface a
+  /// friendly message instead of the raw SDK string. Matches both the
+  /// human-readable "Invalid login credentials" and the error code variants.
+  bool _isInvalidCredentials(Object error) {
+    final s = error.toString().toLowerCase();
+    return s.contains('invalid login credentials') ||
+        s.contains('invalid_credentials') ||
+        s.contains('invalid_grant');
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authNotifierProvider);
@@ -78,9 +88,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           // triggers a navigation rather than a snackbar). Skip it here so
           // the user doesn't see both.
           if (_isEmailNotConfirmed(e)) return;
+          final message = _isInvalidCredentials(e)
+              ? 'Invalid email or password'
+              : e.toString().replaceAll('Exception: ', '');
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(e.toString().replaceAll('Exception: ', '')),
+              content: Text(message),
               backgroundColor: AppColors.error,
             ),
           );
